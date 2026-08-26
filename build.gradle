@@ -1,0 +1,79 @@
+plugins {
+    id 'application'
+    id 'jacoco'
+}
+
+group = 'io.github.bridgesword'
+version = '1.0.0'
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+    withSourcesJar()
+    withJavadocJar()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.13.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+application {
+    mainClass = 'io.github.bridgesword.backgammon.BackgammonApplication'
+    applicationDefaultJvmArgs = ['-Dfile.encoding=UTF-8']
+}
+
+jacoco {
+    toolVersion = '0.8.15'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release.set(17)
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    jvmArgs '-Dfile.encoding=UTF-8', '-Djava.awt.headless=true'
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+        csv.required = false
+    }
+}
+
+tasks.withType(org.gradle.api.tasks.bundling.AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': application.mainClass.get()
+    }
+}
+
+tasks.register('generatePreview', JavaExec) {
+    group = 'documentation'
+    description = 'Renders the real Swing interface to docs/images/gameplay.png.'
+    dependsOn classes
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'io.github.bridgesword.backgammon.ui.PreviewExporter'
+    args layout.projectDirectory.file('docs/images/gameplay.png').asFile.absolutePath
+    jvmArgs '-Djava.awt.headless=true', '-Dfile.encoding=UTF-8'
+}
